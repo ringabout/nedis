@@ -1,2 +1,2 @@
 # nedis
-A simple database written by Nim.
+A simple database written by Nim for studying.
