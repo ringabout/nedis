@@ -80,6 +80,45 @@ proc cat*(s1: var SDS, s2: SDS) {.inline.} =
   for i in  0 ..< s2.len:
     s1.buf[tmp + i] = s2.buf[i]
 
+proc copy*(s1: var SDS, s2: string) {.inline.} = 
+  if s1.len + s1.avail < s2.len:
+    s1 = resize(s1, s2.len)
+  else:
+    s1.len = s2.len
+    s1.avail -= s2.len
+  for i in 0 ..< s1.len:
+    s1.buf[i] = s2[i]
+
+proc fill*(s: var SDS, c: char = '\0', size: int = 1) {.inline.} = 
+  let tmp = s.len
+  if s.avail < size:
+    s = resize(s, s.len + s.avail + size)
+  else:
+    s.len += size
+    s.avail -= size
+  for i in 0 ..< size:
+    s.buf[tmp+i] = c
+
+proc strim*(s: SDS, dict: set[char]): SDS {.inline.} = 
+  new result
+  let total = s.len * 2
+  result.buf = cast[ptr UncheckedArray[char]](alloc(total))  
+  var counter: int = 0
+  for c in 0 ..< s.len:
+    if s.buf[c] notin dict:
+      result.buf[counter] = s.buf[c]
+      inc(counter)
+  result.len = counter
+  result.avail = total - counter
+
+proc cmp(s1: SDS, s2: SDS): bool =
+  if s1.len != s2.len:
+    return false
+  for i in 0 ..< s1.len:
+    if s1.buf[i] != s2.buf[i]:
+      return false
+  return true 
+
 proc `[]`*(s: SDS, idx: int): char = 
   s.buf[idx]
 
@@ -106,10 +145,12 @@ proc `$`*(s: SDS): string =
     result[i] = s.buf[i] 
 
 when isMainModule:
-  var s = newSDS("hello, Nim!")
-  var s2 = "test"
+  var s = newSDS("76sdfhhit3")
+  var s1 = s
+  var s2 = ""
   s &= s2
-  echo s
-  echo s.len
+  var s3 = s.strim({'h', 'i'})
+  echo cmp(s, s3)
+  echo cmp(s, s1)
 
   
