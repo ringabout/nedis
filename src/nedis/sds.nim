@@ -86,8 +86,11 @@ proc copy*(s1: var SDS, s2: string) {.inline.} =
   else:
     s1.len = s2.len
     s1.avail -= s2.len
-  for i in 0 ..< s1.len:
-    s1.buf[i] = s2[i]
+  if s1.len == 0:
+    return
+  moveMem(s1.buf, s2[0].unsafeAddr, s2.len)
+  # for i in 0 ..< s1.len:
+  #   s1.buf[i] = s2[i]
 
 proc fill*(s: var SDS, c: char = '\0', size: int = 1) {.inline.} = 
   let tmp = s.len
@@ -111,7 +114,7 @@ proc strim*(s: SDS, dict: set[char]): SDS {.inline.} =
   result.len = counter
   result.avail = total - counter
 
-proc cmp(s1: SDS, s2: SDS): bool =
+proc cmp*(s1: SDS, s2: SDS): bool =
   if s1.len != s2.len:
     return false
   for i in 0 ..< s1.len:
@@ -145,12 +148,9 @@ proc `$`*(s: SDS): string =
     result[i] = s.buf[i] 
 
 when isMainModule:
-  var s = newSDS("76sdfhhit3")
-  var s1 = s
-  var s2 = ""
-  s &= s2
-  var s3 = s.strim({'h', 'i'})
-  echo cmp(s, s3)
-  echo cmp(s, s1)
+  var s1 = newSDS("76test")
+  var s2 = "te"
+  copy(s1, s2)
+  echo s1
 
   
