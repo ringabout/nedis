@@ -40,12 +40,12 @@ proc insert*[T: SomeInteger](L:var SkipList[T], value: T) =
   var current = L.header
   let infinity = high(T)
   var node: SkipNode[T] 
-  new node
   L.bottom.value = value
   while current != L.bottom:
     while current.value < value:
       current = current.right
     if current.value > current.down.right.right.value:
+      new node
       node.value = current.value
       node.right = current.right
       node.down = current.down.right.right
@@ -55,28 +55,43 @@ proc insert*[T: SomeInteger](L:var SkipList[T], value: T) =
       current = current.down
       
   
-  if L.header.right == L.tail:
+  if L.header.right != L.tail:
+    # the error
+    new node
     node.down = L.header
     node.right = L.tail
     node.value = infinity
     L.header = node
 
+# proc `$`*[T](L: SkipList[T]): string = 
+#   var current = L.header
+#   while current.down != L.bottom:
+#     current = current.down
+#   while current.right != L.tail:
+#     result.add($current.value & "->")
+#     current = current.right
+#   result &= "tail"
+
 proc `$`*[T](L: SkipList[T]): string = 
-  var current = L.header
-  while current.down != L.bottom:
-    current = current.down
-  while current.right != L.tail:
-    result.add($current.value & "->")
-    current = current.right
-  result &= "tail"
-
-
- 
+  var c = L.header
+  while c != L.bottom:
+    var current = c
+    while current.right != L.tail:
+      result.add($current.value & "->")
+      current = current.right
+    result &= "tail\n\n"
+    c = c.down
+  
 
 
 when isMainModule:
+  import random
+  randomize()
   var s = newSkipList[int]() 
-  for i in 1 .. 100:
+  var a = [5, 10, 15, 20, 25, 27, 30, 35, 45, 40, 50]
+  echo a
+  a.shuffle()
+  for i in a:
     s.insert(i)
   echo s
 
