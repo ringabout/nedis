@@ -1,5 +1,5 @@
 type
-  SDS* = ref object
+  SDS* = object
     len: int
     avail: int
     buf*: ptr UncheckedArray[char]
@@ -13,12 +13,10 @@ proc newSDS*(initSize: int = 8): SDS =
 proc newSDS*(s: string, initSize: int = 8): SDS = 
   if s.len == 0:
     return newSDS(initSize)
-  new result
   result.len = s.len
   result.avail = s.len
   result.buf = cast[ptr UncheckedArray[char]](alloc(sizeof(char) * result.len * 2))
-  for i in 0 ..< result.len:
-    result.buf[i] = s[i]
+  moveMem(result.buf, s[0].unsafeAddr, s.len)
 
 proc len*(s: SDS): int {.inline.} = 
   s.len
@@ -27,24 +25,20 @@ proc avail*(s: SDS): int {.inline.}=
   s.avail
 
 proc clone*(s: SDS): SDS = 
-  new result
   result.len = s.len
   result.avail = s.avail
   result.buf = cast[ptr UncheckedArray[char]](alloc(result.len + result.avail))
-  for i in 0 ..< result.len:
-    result.buf[i] = s.buf[i]
+  moveMem(result.buf, s.buf, s.len)
 
 
 proc free*(s:var SDS) = 
   dealloc(s.buf)
   s.buf = nil
-  s = nil
 
 proc clear*(s: var SDS) {.inline.}= 
   s.len = 0
 
 proc resize*(s: SDS, size: int): SDS =
-  new result
   if size < 1048576:
     result.len = size
     result.avail = size
@@ -53,9 +47,8 @@ proc resize*(s: SDS, size: int): SDS =
     result.len = size
     result.avail = 1048576
     result.buf = cast[ptr UncheckedArray[char]](alloc(s.len + s.avail))
-  for i in 0 ..< result.len + result.avail:
-    result.buf[i] = s.buf[i]
-
+  moveMem(result.buf, s.buf, s.len)
+  
 proc cat*(s1: var SDS, s2: string) {.inline.} = 
   let 
     total = s1.len + s2.len
@@ -80,7 +73,7 @@ proc cat*(s1: var SDS, s2: SDS) {.inline.} =
   for i in  0 ..< s2.len:
     s1.buf[tmp + i] = s2.buf[i]
 
-proc copy*(s1: var SDS, s2: string) {.inline.} = 
+proc copy*(s1: var SDS, s2: SDS) {.inline.} = 
   if s1.len + s1.avail < s2.len:
     s1 = resize(s1, s2.len)
   else:
@@ -88,7 +81,7 @@ proc copy*(s1: var SDS, s2: string) {.inline.} =
     s1.avail -= s2.len
   if s1.len == 0:
     return
-  moveMem(s1.buf, s2[0].unsafeAddr, s2.len)
+  s1.buf = s2.buf
   # for i in 0 ..< s1.len:
   #   s1.buf[i] = s2[i]
 
@@ -103,7 +96,6 @@ proc fill*(s: var SDS, c: char = '\0', size: int = 1) {.inline.} =
     s.buf[tmp+i] = c
 
 proc strim*(s: SDS, dict: set[char]): SDS {.inline.} = 
-  new result
   let total = s.len * 2
   result.buf = cast[ptr UncheckedArray[char]](alloc(total))  
   var counter: int = 0
@@ -147,10 +139,20 @@ proc `$`*(s: SDS): string =
   for i in 0 ..< s.len:
     result[i] = s.buf[i] 
 
+proc `==`*(s1, s2: SDS): bool =
+  cmp(s1, s2)
+
+
 when isMainModule:
   var s1 = newSDS("76test")
-  var s2 = "te"
+  var s2 = newSDS("qwuyetrgu")
   copy(s1, s2)
-  echo s1
+  var s3 = s2.strim({'t'})
+  var s4 = clone(s2)
+  assert s1 == newSDS("qwuyetrgu")
+  assert s3 == newSDS("qwuyergu")
+  s2[3] = 'a'
+  assert s1 == s2
+  assert not (s4 == s2)
 
   
